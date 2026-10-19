@@ -24,7 +24,7 @@
     <!-- ZONA DE ADMIN -->
     <div id="admin-panel"
       style="background: #ffeaa7; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none;">
-      
+     
 <!-- NUEVO ENLACE CONSERJE -->
       <h3 style="margin-top:0;">🔒 Panel de Administración: </h3>
       <div>
@@ -81,7 +81,7 @@
           Añadir</button>
       </form>
       <div id="createMsg" style="color: green; font-weight: bold; margin-top: 10px;"></div>
-      
+     
     </div>
 
 
@@ -90,7 +90,42 @@
     <div id="espacios-container">
       Cargando espacios...
     </div>
-    
+    <!-- Panel de Reserva Oculto -->
+<div id="bookingPanel" style="
+display: none;
+background: #e8f4fd;
+padding: 20px;
+border-radius: 8px;
+margin-top: 20px;
+border: 2px solid #3498db;"
+>
+
+
+  <h3>📅 Reservar: <span id="bookingSpaceName"></span></h3>
+  <form id="bookingForm" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+   
+    <div style="display:flex; flex-direction:column;">
+      <label for="bookDate"><strong>Fecha:</strong></label>
+      <input type="date" id="bookDate" required>
+    </div>
+   
+    <div style="display:flex; flex-direction:column;">
+      <label for="bookStart"><strong>Hora Inicio:</strong></label>
+      <input type="time" id="bookStart" required>
+    </div>
+
+    <div style="display:flex; flex-direction:column;">
+      <label for="bookEnd"><strong>Hora Fin:</strong></label>
+      <input type="time" id="bookEnd" required>
+    </div>
+
+    <button type="submit" style="padding: 10px 15px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">Confirmar</button>
+    <button type="button" onclick="closeBookingPanel()" style="padding: 10px 15px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancelar</button>
+  </form>
+  <div id="bookingMsg" style="margin-top: 10px; font-weight: bold;"></div>
+</div>
+
+
 <!-- Contenedor para el Ticket QR -->
 <div id="ticket-container" style="display: none; background: white; padding: 20px; border-radius: 8px; text-align: center; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
   <h3>🎫 Tu Ticket de Acceso</h3>

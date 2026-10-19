@@ -69,7 +69,7 @@ async function loadEspacios() {
         const btnReservar = document.createElement('button');
         btnReservar.className = 'btn-reservar';
         btnReservar.textContent = '📅 Reservar';
-        btnReservar.onclick = () => crearReserva(espacio.id, espacio.nombre);
+        btnReservar.onclick = () => openBookingPanel(espacio.id, espacio.nombre);
         card.appendChild(btnReservar);
       }
 
@@ -80,6 +80,30 @@ async function loadEspacios() {
     container.innerHTML = '<p style="color:red;">Error al conectar con la API.</p>';
   }
 }
+// Variables globales para saber qué espacio estamos reservando
+let currentSpaceId = null;
+let currentSpaceName = '';
+
+// FUNCIÓN PARA ABRIR EL FORMULARIO
+function openBookingPanel(espacioId, espacioNombre) {
+    currentSpaceId = espacioId;
+    currentSpaceName = espacioNombre;
+   
+    // Actualizamos el HTML del panel
+    document.getElementById('bookingSpaceName').textContent = espacioNombre;
+   
+    // Mostramos el panel y hacemos scroll para que se vea
+    const panel = document.getElementById('bookingPanel');
+    panel.style.display = 'block';
+    panel.scrollIntoView({ behavior: 'smooth' });
+}
+
+// FUNCIÓN PARA CERRAR EL FORMULARIO (La usa el botón Cancelar del HTML)
+function closeBookingPanel() {
+    document.getElementById('bookingPanel').style.display = 'none';
+    document.getElementById('bookingMsg').textContent = ''; // Limpiar mensajes
+}
+
 
 // 7. Función de Borrar Espacio (Solo la ejecutarán los Admin)
 async function deleteEspacio(id) {
@@ -103,50 +127,7 @@ async function deleteEspacio(id) {
   }
 }
 
-// 8. Función de Crear Reserva (Solo la ejecutarán los Ciudadanos)
-async function crearReserva(espacioId, espacioNombre) {
-  // Pedimos los datos por prompt
-  const fecha = prompt(`Reservar: ${espacioNombre}\n\nIntroduce la fecha (YYYY-MM-DD):`);
-  if (!fecha) return; // Si cancela, paramos
 
-  const hora_inicio = prompt("Hora de inicio (HH:MM):", "10:00");
-  if (!hora_inicio) return;
-
-  const hora_fin = prompt("Hora de fin (HH:MM):", "11:00");
-  if (!hora_fin) return;
-
-  try {
-    // Hacemos la petición POST a la API
-    const response = await fetch(`${API_URL}/reservas`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}` // ¡Importante! El backend saca el usuario_id de aquí
-      },
-      body: JSON.stringify({
-        espacio_id: espacioId,
-        fecha,
-        hora_inicio,
-        hora_fin
-      })
-    });
-
-    const data = await response.json();
-
-    // Gestionamos la respuesta del Backend
-    if (response.ok) {
-      //alert(`✅ ¡Reserva confirmada! ID de tu reserva: ${data.id}`);
-      generarTicketQR(data.id, espacioNombre, fecha, hora_inicio);
-    } else if (response.status === 409) {
-      alert(`❌ Conflictos: ${data.error}`); // Doble reserva
-    } else {
-      alert(`❌ Error: ${data.error}`); // Otros errores (400, 404, etc.)
-    }
-
-  } catch (error) {
-    alert('Error de conexión con el servidor');
-  }
-}
 // 9. NUEVA FUNCIÓN: Generar el QR
 function generarTicketQR(reservaId, nombreEspacio, fecha, hora) {
   const ticketContainer = document.getElementById('ticket-container');
@@ -227,3 +208,69 @@ createEspacioForm.addEventListener('submit', async (e) => {
   }
 });
 
+// LÓGICA DEL FORMULARIO DE RESERVA
+document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+   e.preventDefault(); // Evita que recargue la página
+ 
+   const msgDiv = document.getElementById('bookingMsg');
+   msgDiv.style.color = 'red'; // Por defecto errores en rojo
+ 
+   const fecha = document.getElementById('bookDate').value;
+   const hora_inicio = document.getElementById('bookStart').value;
+   const hora_fin = document.getElementById('bookEnd').value;
+
+   // --- VALIDACIONES DE FRONTEND ---
+   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+   if (fecha < today) {
+       msgDiv.textContent = "❌ No puedes reservar en una fecha pasada.";
+       return;
+   }
+
+   if (hora_fin <= hora_inicio) {
+       msgDiv.textContent = "❌ La hora de fin debe ser posterior a la hora de inicio.";
+       return;
+   }
+
+   // --- FETCH A LA API (Lo que antes hacía crearReserva) ---
+   try {
+       const response = await fetch(`${API_URL}/reservas`, {
+           method: 'POST',
+           headers: {
+               'Content-Type': 'application/json',
+               'Authorization': `Bearer ${token}`
+           },
+           body: JSON.stringify({
+               espacio_id: currentSpaceId, // Usamos la variable global
+               fecha,
+               hora_inicio,
+               hora_fin
+           })
+       });
+
+       const data = await response.json();
+
+       if (response.ok) {
+           // ¡Éxito! Mensaje en verde en el DOM
+           msgDiv.style.color = 'green';
+           msgDiv.textContent = `✅ ¡Reserva confirmada! ID: ${data.id}`;
+         
+           // Opcional: Generar QR aquí si lo tenías implementado
+           generarTicketQR(data.id, currentSpaceName, fecha, hora_inicio);
+         
+           // Limpiamos el formulario tras 3 segundos y ocultamos el panel
+           setTimeout(() => {
+               document.getElementById('bookingForm').reset();
+               closeBookingPanel();
+               loadEspacios(); // Recargar para actualizar contadores etc.
+           }, 3000);
+
+       } else if (response.status === 409) {
+           msgDiv.textContent = `❌ Conflictos: ${data.error}`;
+       } else {
+           msgDiv.textContent = `❌ Error: ${data.error}`;
+       }
+
+   } catch (error) {
+       msgDiv.textContent = '❌ Error de conexión con el servidor';
+   }
+});
